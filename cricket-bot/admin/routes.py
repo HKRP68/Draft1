@@ -1,11 +1,22 @@
 """Admin panel routes for Player CRUD operations."""
 
+import functools
 import math
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from sqlalchemy import func
 
 from config.database import SessionLocal
+from config.settings import ADMIN_PASSWORD, ADMIN_USERNAME
 from database.models import Player
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -15,6 +26,47 @@ ITEMS_PER_PAGE = 25
 CATEGORIES = ["Batsman", "Bowler", "All-rounder", "Wicket Keeper"]
 HAND_CHOICES = ["Right", "Left"]
 BOWL_STYLES = ["Fast", "Off Spinner", "Leg Spinner", "Medium Pacer"]
+
+
+# ── Authentication ─────────────────────────────────────────────
+
+def _check_auth(username: str, password: str) -> bool:
+    """Verify admin credentials."""
+    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
+
+
+def _authenticate():
+    """Send a 401 response that triggers the browser login dialog."""
+    return Response(
+        "Login required to access the admin panel.",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Cricket Bot Admin"'},
+    )
+
+
+def require_auth(f):
+    """Decorator that enforces HTTP Basic Auth when ADMIN_PASSWORD is set."""
+
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not ADMIN_PASSWORD:
+            # No password configured – skip auth (development convenience)
+            return f(*args, **kwargs)
+        auth = request.authorization
+        if not auth or not _check_auth(auth.username, auth.password):
+            return _authenticate()
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+@admin_bp.before_request
+def _before_request():
+    """Apply authentication to every admin request."""
+    if ADMIN_PASSWORD:
+        auth = request.authorization
+        if not auth or not _check_auth(auth.username, auth.password):
+            return _authenticate()
 
 
 def _get_db():

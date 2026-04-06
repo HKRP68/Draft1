@@ -22,3 +22,7 @@ ADMIN_PORT = int(os.getenv("ADMIN_PORT", "5000"))
 
 # Secret key for Flask session / CSRF (generate a strong random key for production)
 ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "change-me-in-production")
+
+# Admin panel credentials (basic auth)
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
