@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Google Sheets Sync{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">📊 Google Sheets Sync</h2>
+
+{% if not configured %}
+<!-- Setup instructions -->
+<div class="card border-warning mb-4">
+  <div class="card-header bg-warning text-dark fw-bold">⚠️ Not Configured</div>
+  <div class="card-body">
+    <p>Google Sheets integration requires three environment variables:</p>
+    <table class="table table-sm">
+      <thead><tr><th>Variable</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>GOOGLE_SHEETS_CREDENTIALS_FILE</code></td>
+          <td>Path to the service-account JSON key file downloaded from the
+              <a href="https://console.cloud.google.com/iam-admin/serviceaccounts"
+                 target="_blank" rel="noopener">Google Cloud Console</a>.</td>
+        </tr>
+        <tr>
+          <td><code>GOOGLE_SHEETS_SPREADSHEET_ID</code></td>
+          <td>The spreadsheet ID or full URL. <em>Share the sheet with the
+              service-account email (Editor access).</em></td>
+        </tr>
+        <tr>
+          <td><code>GOOGLE_SHEETS_WORKSHEET_NAME</code></td>
+          <td>Tab / worksheet name inside the spreadsheet (default: <strong>Players</strong>).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h6 class="mt-4">Quick Setup Steps</h6>
+    <ol>
+      <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> → create a project (or use an existing one).</li>
+      <li>Enable the <strong>Google Sheets API</strong> and <strong>Google Drive API</strong>.</li>
+      <li>Create a <strong>Service Account</strong> under <em>IAM &amp; Admin → Service Accounts</em>.</li>
+      <li>Generate a <strong>JSON key</strong> for the service account and download it.</li>
+      <li>Create a Google Sheet (or use an existing one) and <strong>share it</strong> with the
+          service-account email address (e.g.
+          <code>bot@my-project.iam.gserviceaccount.com</code>) as <strong>Editor</strong>.</li>
+      <li>Set the three env vars above and restart the bot.</li>
+    </ol>
+  </div>
+</div>
+
+{% else %}
+<!-- Sync controls -->
+<div class="row g-4">
+  <!-- Export card -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100 border-primary">
+      <div class="card-header bg-primary text-white fw-bold">⬆️ Export to Google Sheets</div>
+      <div class="card-body">
+        <p>Push <strong>all players</strong> from the database into the configured Google Sheet.
+           The sheet will be cleared first and replaced with current data.</p>
+        <ul class="text-muted small">
+          <li>Overwrites the entire sheet</li>
+          <li>Header row is added automatically</li>
+          <li>Players sorted by rating (highest first)</li>
+        </ul>
+        <form method="post" action="{{ url_for('admin.sheets_export') }}"
+              onsubmit="return confirm('This will overwrite the entire Google Sheet. Continue?');">
+          <button type="submit" class="btn btn-primary w-100">
+            Export Players → Sheet
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import card -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100 border-success">
+      <div class="card-header bg-success text-white fw-bold">⬇️ Import from Google Sheets</div>
+      <div class="card-body">
+        <p>Read rows from the Google Sheet and sync them into the database.</p>
+        <ul class="text-muted small">
+          <li>Rows with an existing <code>id</code> → <strong>updated</strong></li>
+          <li>Rows with empty <code>id</code> → <strong>created</strong> (if name is unique)</li>
+          <li>Duplicate names and invalid rows are skipped</li>
+        </ul>
+        <form method="post" action="{{ url_for('admin.sheets_import') }}"
+              onsubmit="return confirm('Import changes from Google Sheet into the database?');">
+          <button type="submit" class="btn btn-success w-100">
+            Import Sheet → Database
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Workflow tip -->
+<div class="card mt-4">
+  <div class="card-header fw-bold">💡 Recommended Workflow</div>
+  <div class="card-body">
+    <ol>
+      <li><strong>Export</strong> players to the Google Sheet.</li>
+      <li>Edit player data directly in Google Sheets — update ratings, add new rows, fix stats, etc.</li>
+      <li><strong>Import</strong> the sheet back to apply all your changes at once.</li>
+    </ol>
+    <p class="text-muted mb-0">
+      You can also share the sheet with your team so multiple people can edit player data
+      before importing.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<div class="mt-4">
+  <a href="{{ url_for('admin.player_list') }}" class="btn btn-outline-secondary">← Back to Players</a>
+</div>
+{% endblock %}
