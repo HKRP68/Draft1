@@ -9,6 +9,7 @@ services:
       - .env
     ports:
       - "5000:5000"
+      - "8080:8080"
     volumes:
       - ./logs:/app/logs
       - ./cricket_bot.db:/app/cricket_bot.db

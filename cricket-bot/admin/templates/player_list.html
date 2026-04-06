@@ -9,11 +9,11 @@
 
 <!-- Filters -->
 <form method="get" class="row g-2 mb-3">
-  <div class="col-md-4">
+  <div class="col-12 col-sm-6 col-md-4">
     <input type="text" name="search" class="form-control" placeholder="Search by name…"
            value="{{ search }}">
   </div>
-  <div class="col-md-2">
+  <div class="col-6 col-sm-6 col-md-2">
     <select name="category" class="form-select">
       <option value="">All Categories</option>
       {% for cat in categories %}
@@ -21,7 +21,7 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-md-2">
+  <div class="col-6 col-sm-6 col-md-2">
     <select name="country" class="form-select">
       <option value="">All Countries</option>
       {% for c in countries %}
@@ -29,11 +29,11 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-md-2">
+  <div class="col-6 col-sm-3 col-md-2">
     <button type="submit" class="btn btn-primary w-100">Filter</button>
   </div>
   {% if search or category or country %}
-  <div class="col-md-2">
+  <div class="col-6 col-sm-3 col-md-2">
     <a href="{{ url_for('admin.player_list') }}" class="btn btn-outline-secondary w-100">Clear</a>
   </div>
   {% endif %}
@@ -48,9 +48,9 @@
         <th>Name</th>
         <th>Version</th>
         <th>Rating</th>
-        <th>Category</th>
-        <th>Country</th>
-        <th>Active</th>
+        <th class="d-none d-md-table-cell">Category</th>
+        <th class="d-none d-md-table-cell">Country</th>
+        <th class="d-none d-sm-table-cell">Active</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -71,16 +71,16 @@
             <span class="badge bg-secondary badge-rating">{{ p.rating }}</span>
           {% endif %}
         </td>
-        <td>{{ p.category }}</td>
-        <td>{{ p.country or '—' }}</td>
-        <td>
+        <td class="d-none d-md-table-cell">{{ p.category }}</td>
+        <td class="d-none d-md-table-cell">{{ p.country or '—' }}</td>
+        <td class="d-none d-sm-table-cell">
           {% if p.is_active %}
             <span class="badge bg-success">Yes</span>
           {% else %}
             <span class="badge bg-secondary">No</span>
           {% endif %}
         </td>
-        <td>
+        <td class="text-nowrap">
           <a href="{{ url_for('admin.player_edit', player_id=p.id) }}"
              class="btn btn-sm btn-outline-primary">Edit</a>
           <form action="{{ url_for('admin.player_delete', player_id=p.id) }}"
@@ -102,7 +102,7 @@
 <!-- Pagination -->
 {% if total_pages > 1 %}
 <nav>
-  <ul class="pagination justify-content-center">
+  <ul class="pagination justify-content-center flex-wrap">
     <li class="page-item {% if page == 1 %}disabled{% endif %}">
       <a class="page-link"
          href="{{ url_for('admin.player_list', page=page-1, search=search, category=category, country=country) }}">

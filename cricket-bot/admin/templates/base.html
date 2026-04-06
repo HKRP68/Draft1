@@ -13,19 +13,32 @@
     .navbar-brand { font-weight: 700; }
     .badge-rating { font-size: .85rem; }
     .table td, .table th { vertical-align: middle; }
+    /* Mobile-friendly touch targets */
+    @media (max-width: 767.98px) {
+      .btn { min-height: 44px; min-width: 44px; }
+      .btn-sm { min-height: 38px; min-width: 38px; font-size: .875rem; }
+      .form-control, .form-select { min-height: 44px; }
+    }
   </style>
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container-fluid">
       <a class="navbar-brand" href="{{ url_for('admin.player_list') }}">🏏 Cricket Bot Admin</a>
-      <div class="navbar-nav ms-auto">
-        <a class="nav-link" href="{{ url_for('admin.player_list') }}">Players</a>
-        <a class="nav-link" href="{{ url_for('admin.player_create') }}">+ New Player</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#adminNav" aria-controls="adminNav"
+              aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="adminNav">
+        <div class="navbar-nav ms-auto">
+          <a class="nav-link" href="{{ url_for('admin.player_list') }}">Players</a>
+          <a class="nav-link" href="{{ url_for('admin.player_create') }}">+ New Player</a>
+        </div>
       </div>
     </div>
   </nav>
-  <div class="container-fluid px-4">
+  <div class="container-fluid px-3 px-md-4">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for cat, msg in messages %}
