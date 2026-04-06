@@ -33,6 +33,12 @@ ADMIN_TELEGRAM_IDS: list[int] = [
     int(x.strip()) for x in _raw_admin_ids.split(",") if x.strip().isdigit()
 ]
 
+# Mini App admin panel
+MINIAPP_URL = os.getenv("MINIAPP_URL", "")  # e.g. https://your-app.onrender.com/miniapp
+MINIAPP_JWT_SECRET = os.getenv("MINIAPP_JWT_SECRET", ADMIN_SECRET_KEY)
+MINIAPP_INIT_EMAIL = os.getenv("MINIAPP_INIT_EMAIL", "")
+MINIAPP_INIT_PASSWORD = os.getenv("MINIAPP_INIT_PASSWORD", "")
+
 # Google Sheets integration
 # Path to the service-account JSON key file (downloaded from Google Cloud Console)
 GOOGLE_SHEETS_CREDENTIALS_FILE = os.getenv("GOOGLE_SHEETS_CREDENTIALS_FILE", "")

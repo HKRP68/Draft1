@@ -5,21 +5,22 @@ environment variable may use these commands.
 
 Commands
 --------
-/addplayer   – create a new player
-/editplayer  – edit an existing player's fields
-/delplayer   – deactivate a player (soft-delete)
-/listplayers – search / list players with pagination
-/playerstats – show database statistics
+/addplayer    – create a new player
+/editplayer   – edit an existing player's fields
+/delplayer    – deactivate a player (soft-delete)
+/listplayers  – search / list players with pagination
+/playerstats  – show database statistics
+/admin_panel  – open the Mini App admin panel
 """
 
 import logging
 import math
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import ContextTypes
 
 from config.database import SessionLocal
-from config.settings import ADMIN_TELEGRAM_IDS
+from config.settings import ADMIN_TELEGRAM_IDS, MINIAPP_URL
 from database.models import Player
 
 logger = logging.getLogger(__name__)
@@ -492,3 +493,39 @@ async def playerstats_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text(f"❌ Error: {exc}")
     finally:
         db.close()
+
+
+# ═══════════════════════════════════════════════════════════════
+# /admin_panel – open Mini App
+# ═══════════════════════════════════════════════════════════════
+
+async def admin_panel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a button that opens the Telegram Mini App admin panel.
+
+    Usage::
+
+        /admin_panel
+    """
+    if not _is_admin(update.effective_user.id):
+        await update.message.reply_text(_not_admin_msg())
+        return
+
+    if not MINIAPP_URL:
+        await update.message.reply_text(
+            "⚠️ Mini App URL is not configured.\n\n"
+            "Set the `MINIAPP_URL` environment variable to your app's URL "
+            "(e.g. `https://your-app.onrender.com/miniapp`).",
+            parse_mode="Markdown",
+        )
+        return
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            "🏏 Open Admin Panel",
+            web_app=WebAppInfo(url=MINIAPP_URL),
+        )]
+    ])
+    await update.message.reply_text(
+        "Tap the button below to open the Admin Panel:",
+        reply_markup=keyboard,
+    )

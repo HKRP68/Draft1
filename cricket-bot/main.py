@@ -12,12 +12,14 @@ from telegram.ext import (
 )
 
 from admin import create_app
-from config.database import init_db
+from admin.miniapp_seed import seed_initial_admin
+from config.database import SessionLocal, init_db
 from config.logging_config import setup_logging
-from config.settings import ADMIN_PORT, ADMIN_TELEGRAM_IDS, BOT_TOKEN, PORT
+from config.settings import ADMIN_PORT, ADMIN_TELEGRAM_IDS, BOT_TOKEN, MINIAPP_URL, PORT
 from database.seed import seed_database
 from handlers.admin_handlers import (
     addplayer_command,
+    admin_panel_command,
     delplayer_command,
     editplayer_command,
     listplayers_command,
@@ -103,6 +105,13 @@ def main():
     logger.info("Seeding player data...")
     seed_database()
 
+    # Seed initial Mini App admin user (from env vars)
+    db = SessionLocal()
+    try:
+        seed_initial_admin(db)
+    finally:
+        db.close()
+
     # Build the Telegram application
     logger.info("Building Telegram application...")
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -125,6 +134,7 @@ def main():
     app.add_handler(CommandHandler("delplayer", delplayer_command))
     app.add_handler(CommandHandler("listplayers", listplayers_command))
     app.add_handler(CommandHandler("playerstats", playerstats_command))
+    app.add_handler(CommandHandler("admin_panel", admin_panel_command))
 
     if ADMIN_TELEGRAM_IDS:
         logger.info("Telegram admin commands enabled for user IDs: %s", ADMIN_TELEGRAM_IDS)
