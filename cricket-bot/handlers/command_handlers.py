@@ -1,8 +1,10 @@
-"""Telegram command handlers for /debut, /claim, /myroster, /playerinfo, /daily, /gspin."""
+"""Telegram command handlers for /debut, /claim, /myroster, /playerinfo, /daily, /gspin,
+/release, /releasemultiple, /trade, /mytradesettings."""
 
 import logging
 import os
 import random
+import re
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
@@ -16,7 +18,12 @@ from config.constants import (
     DEBUT_PLAYER_DISTRIBUTION,
     GSPIN_OUTCOMES,
     MAX_ROSTER_SIZE,
+    ROSTER_PAGE_SIZE,
     STREAK_MILESTONE,
+    TRADE_ALLOWED_MIN_RATING,
+    TRADE_EXPIRES_SECONDS,
+    TRADE_FEE_PERCENT,
+    BUY_SELL_VALUES,
 )
 from config.database import SessionLocal
 from database.crud import (
@@ -24,6 +31,7 @@ from database.crud import (
     create_user,
     get_player_by_name,
     get_user_by_telegram_id,
+    get_user_by_username,
     get_user_roster,
     search_players_by_name,
     update_user_coins,
@@ -36,6 +44,16 @@ from services.player_service import (
     get_player_value,
     get_random_player_by_rarity,
     get_random_player_by_rating,
+)
+from services.rating_matcher_service import (
+    get_matching_tradeable_ratings,
+    get_tradeable_ratings,
+)
+from services.roster_service import (
+    get_duplicate_players,
+    get_players_by_rating,
+    get_roster_stats,
+    get_user_roster_sorted,
 )
 from services.streak_service import update_streak
 from utils.formatters import (
@@ -374,22 +392,28 @@ async def daily_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def myroster_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /myroster command – display user's roster."""
+    """Handle /myroster [page] command – display paginated roster with release buttons."""
     telegram_user = update.effective_user
     logger.info("User %s (%s) used /myroster", telegram_user.id, telegram_user.username)
 
+    # Parse optional page number from args
+    page = 1
+    if context.args:
+        try:
+            page = max(1, int(context.args[0]))
+        except ValueError:
+            pass
+
     db = SessionLocal()
     try:
-        # Check if user exists
         user = get_user_by_telegram_id(db, telegram_user.id)
         if not user:
             await update.message.reply_text("❌ Do /debut first!")
             return
 
-        # Get roster
-        roster_entries = get_user_roster(db, user)
+        entries = get_user_roster_sorted(db, user)
 
-        if not roster_entries:
+        if not entries:
             await update.message.reply_text(
                 f"📊 **Your Roster** (0/{MAX_ROSTER_SIZE})\n\n"
                 f"No players yet! Use /claim to get players.\n\n"
@@ -399,29 +423,64 @@ async def myroster_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
             return
 
-        # Format roster
+        stats = get_roster_stats(db, user)
+        total_pages = max(1, (len(entries) + ROSTER_PAGE_SIZE - 1) // ROSTER_PAGE_SIZE)
+        page = min(page, total_pages)
+        start = (page - 1) * ROSTER_PAGE_SIZE
+        page_entries = entries[start: start + ROSTER_PAGE_SIZE]
+
+        # Build player lines with release buttons
         lines = []
-        total_rating = 0
-        for i, entry in enumerate(roster_entries):
+        buttons_row = []
+        release_buttons = []
+        for i, entry in enumerate(page_entries, start=start):
             player = entry.player
+            sell_val = BUY_SELL_VALUES.get(player.rating, (200, 120))[1]
             lines.append(
-                format_roster_entry(i, player.name, player.rating, player.category)
+                f"{format_roster_entry(i, player.name, player.rating, player.category)}\n"
+                f"   🪙 Sell: {format_coins(sell_val)}"
             )
-            total_rating += player.rating
+            release_buttons.append(
+                InlineKeyboardButton(
+                    f"Release {player.name[:12]}",
+                    callback_data=f"release_confirm_{entry.id}_{user.id}",
+                )
+            )
 
-        avg_rating = round(total_rating / len(roster_entries), 1) if roster_entries else 0
-        roster_text = "\n".join(lines)
+        # Group release buttons two per row
+        kb_rows = []
+        for i in range(0, len(release_buttons), 2):
+            kb_rows.append(release_buttons[i: i + 2])
 
+        # Pagination navigation row
+        nav_row = []
+        if page > 1:
+            nav_row.append(InlineKeyboardButton("◀️ Previous", callback_data=f"roster_page_{page-1}_{user.id}"))
+        if page < total_pages:
+            nav_row.append(InlineKeyboardButton("Next ▶️", callback_data=f"roster_page_{page+1}_{user.id}"))
+        if nav_row:
+            kb_rows.append(nav_row)
+
+        roster_text = "\n\n".join(lines)
         text = (
-            f"📊 **Your Roster** ({len(roster_entries)}/{MAX_ROSTER_SIZE})\n\n"
-            f"{roster_text}\n\n"
-            f"💰 Total Coins: {format_coins(user.total_coins)}\n"
-            f"💎 Total Gems: {user.total_gems}\n"
-            f"📊 Average Team Rating: {avg_rating}"
+            f"📊 **YOUR ROSTER** ({len(entries)}/{MAX_ROSTER_SIZE})\n\n"
+            f"📈 **Roster Stats:**\n"
+            f"• Avg Rating: {stats['avg_rating']}\n"
+            f"• Total Value: {format_coins(stats['total_value'])} 🪙\n"
+            f"• Duplicates: {stats['duplicate_count']}\n\n"
+            f"👥 **Players (Page {page}/{total_pages}):**\n\n"
+            f"{roster_text}"
         )
 
-        await update.message.reply_text(text, parse_mode="Markdown")
-        logger.info("Roster displayed for user %s: %d players", telegram_user.id, len(roster_entries))
+        await update.message.reply_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(kb_rows) if kb_rows else None,
+        )
+        logger.info(
+            "Roster page %d/%d displayed for user %s: %d players",
+            page, total_pages, telegram_user.id, len(entries),
+        )
 
     except Exception as e:
         logger.error("Error in /myroster for user %s: %s", telegram_user.id, e, exc_info=True)
@@ -509,3 +568,287 @@ async def playerinfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("⚠️ An error occurred. Please try again later.")
     finally:
         db.close()
+
+
+# ─────────────────────────────────────────────────────────────────────
+# /release [player_name]
+# ─────────────────────────────────────────────────────────────────────
+
+async def release_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /release [player_name] – show confirmation dialog before releasing."""
+    telegram_user = update.effective_user
+    logger.info("User %s (%s) used /release", telegram_user.id, telegram_user.username)
+
+    db = SessionLocal()
+    try:
+        user = get_user_by_telegram_id(db, telegram_user.id)
+        if not user:
+            await update.message.reply_text("❌ Do /debut first!")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Usage: `/release Player Name`\n"
+                "Example: `/release Virat Kohli`",
+                parse_mode="Markdown",
+            )
+            return
+
+        player_name = " ".join(context.args)
+        entries = get_user_roster_sorted(db, user)
+
+        # Find roster entry by player name (case-insensitive)
+        matched_entry = None
+        for e in entries:
+            if e.player.name.lower() == player_name.lower():
+                matched_entry = e
+                break
+
+        if not matched_entry:
+            # Try partial match suggestions
+            suggestions = [
+                e.player.name for e in entries
+                if player_name.lower() in e.player.name.lower()
+            ][:5]
+            if suggestions:
+                sugg_text = "\n".join(f"  • {n}" for n in suggestions)
+                await update.message.reply_text(
+                    f"❌ No player named '{player_name}' in your roster. Did you mean:\n{sugg_text}",
+                    parse_mode="Markdown",
+                )
+            else:
+                await update.message.reply_text(
+                    f"❌ No player named '{player_name}' in your roster."
+                )
+            return
+
+        player = matched_entry.player
+        sell_val = BUY_SELL_VALUES.get(player.rating, (200, 120))[1]
+
+        text = (
+            f"🔴 **RELEASE PLAYER?**\n\n"
+            f"Player: {player.name}\n"
+            f"Rating: {player.rating} OVR\n"
+            f"Category: {player.category}\n\n"
+            f"💸 You will receive: {format_coins(sell_val)} 🪙\n"
+        )
+
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton(
+                "✅ Confirm Release",
+                callback_data=f"release_confirm_{matched_entry.id}_{user.id}",
+            ),
+            InlineKeyboardButton(
+                "❌ Cancel",
+                callback_data=f"release_cancel_{matched_entry.id}_{user.id}",
+            ),
+        ]])
+
+        await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+    except Exception as e:
+        logger.error("Error in /release for user %s: %s", telegram_user.id, e, exc_info=True)
+        await update.message.reply_text("⚠️ An error occurred. Please try again later.")
+    finally:
+        db.close()
+
+
+# ─────────────────────────────────────────────────────────────────────
+# /releasemultiple
+# ─────────────────────────────────────────────────────────────────────
+
+async def releasemultiple_command(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Handle /releasemultiple – show duplicate players with release buttons."""
+    telegram_user = update.effective_user
+    logger.info("User %s (%s) used /releasemultiple", telegram_user.id, telegram_user.username)
+
+    db = SessionLocal()
+    try:
+        user = get_user_by_telegram_id(db, telegram_user.id)
+        if not user:
+            await update.message.reply_text("❌ Do /debut first!")
+            return
+
+        duplicates = get_duplicate_players(db, user)
+
+        if not duplicates:
+            await update.message.reply_text(
+                "📋 You have no duplicate players.\n"
+                "Use /myroster to see your full roster."
+            )
+            return
+
+        lines = []
+        kb_rows = []
+        for dup in duplicates:
+            player = dup["player"]
+            count = dup["count"]
+            sv = dup["sell_value"]
+            lines.append(
+                f"• {player.name} - {player.rating} OVR (Qty: {count})\n"
+                f"  💸 {format_coins(sv)} each"
+            )
+            # One release button per copy (up to 5 shown)
+            row = []
+            for idx, entry in enumerate(dup["entries"][:5], 1):
+                row.append(InlineKeyboardButton(
+                    f"Release copy {idx}" if count > 1 else "Release",
+                    callback_data=f"release_multi_one_{entry.id}_{user.id}",
+                ))
+            kb_rows.append(row)
+
+        text = (
+            f"📋 **YOUR DUPLICATE PLAYERS**\n\n"
+            f"Found {len(duplicates)} players owned multiple times:\n\n"
+            + "\n\n".join(lines)
+        )
+
+        await update.message.reply_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(kb_rows) if kb_rows else None,
+        )
+
+    except Exception as e:
+        logger.error(
+            "Error in /releasemultiple for user %s: %s", telegram_user.id, e, exc_info=True
+        )
+        await update.message.reply_text("⚠️ An error occurred. Please try again later.")
+    finally:
+        db.close()
+
+
+# ─────────────────────────────────────────────────────────────────────
+# /trade @username
+# ─────────────────────────────────────────────────────────────────────
+
+async def trade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /trade @username – start the trade flow."""
+    telegram_user = update.effective_user
+    logger.info("User %s (%s) used /trade", telegram_user.id, telegram_user.username)
+
+    db = SessionLocal()
+    try:
+        user = get_user_by_telegram_id(db, telegram_user.id)
+        if not user:
+            await update.message.reply_text("❌ Do /debut first!")
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Usage: `/trade @username`\nExample: `/trade @PlayerTwo`",
+                parse_mode="Markdown",
+            )
+            return
+
+        raw_target = context.args[0]
+        if not raw_target.startswith("@"):
+            await update.message.reply_text(
+                "❌ Invalid username format. Use `/trade @username`",
+                parse_mode="Markdown",
+            )
+            return
+
+        target_username = raw_target.lstrip("@")
+
+        # Validate username characters
+        if not re.match(r"^[a-zA-Z0-9_]{3,32}$", target_username):
+            await update.message.reply_text(
+                "❌ Invalid username format. Use `/trade @username`",
+                parse_mode="Markdown",
+            )
+            return
+
+        receiver = get_user_by_username(db, target_username)
+        if not receiver:
+            await update.message.reply_text(
+                f"❌ User @{target_username} not found. They must use /debut first."
+            )
+            return
+
+        if receiver.id == user.id:
+            await update.message.reply_text("❌ You cannot trade with yourself")
+            return
+
+        # Check if initiator has any tradeable players
+        my_ratings = get_tradeable_ratings(db, user)
+        if not my_ratings:
+            await update.message.reply_text(
+                f"❌ You have no players rated {TRADE_ALLOWED_MIN_RATING}+ OVR to trade"
+            )
+            return
+
+        matching = get_matching_tradeable_ratings(db, user, receiver)
+        if not matching:
+            recv_uname = receiver.username or str(receiver.telegram_id)
+            await update.message.reply_text(
+                f"❌ @{recv_uname} has no players with your tradeable ratings"
+            )
+            return
+
+        # Build rating overview
+        entries_sorted = get_user_roster_sorted(db, user)
+        their_entries_sorted = get_user_roster_sorted(db, receiver)
+
+        def _player_list_for_ratings(entries, ratings):
+            shown: set = set()
+            lines = []
+            for e in entries:
+                r = e.player.rating
+                if r in ratings and r not in shown:
+                    shown.add(r)
+                    lines.append(f"• {r} OVR: {e.player.name}")
+            return "\n".join(lines) if lines else "None"
+
+        my_lines = _player_list_for_ratings(entries_sorted, set(my_ratings))
+        their_lines = _player_list_for_ratings(their_entries_sorted, set(get_tradeable_ratings(db, receiver)))
+        recv_uname = receiver.username or str(receiver.telegram_id)
+
+        text = (
+            f"🔍 **SEARCHING FOR TRADE MATCHES WITH @{recv_uname}**\n\n"
+            f"Your tradeable players (rating ≥ {TRADE_ALLOWED_MIN_RATING}):\n{my_lines}\n\n"
+            f"Their tradeable players (rating ≥ {TRADE_ALLOWED_MIN_RATING}):\n{their_lines}\n\n"
+            f"✅ Matching Ratings: {', '.join(str(r) + ' OVR' for r in matching)}"
+        )
+
+        buttons = [
+            [InlineKeyboardButton(
+                f"Select {r} OVR",
+                callback_data=f"trade_rating_{r}_{receiver.telegram_id}_{user.telegram_id}",
+            )]
+            for r in matching
+        ]
+        buttons.append([InlineKeyboardButton("❌ Cancel", callback_data="trade_cancel_offer")])
+
+        await update.message.reply_text(
+            text, parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons),
+        )
+
+    except Exception as e:
+        logger.error("Error in /trade for user %s: %s", telegram_user.id, e, exc_info=True)
+        await update.message.reply_text("⚠️ An error occurred. Please try again later.")
+    finally:
+        db.close()
+
+
+# ─────────────────────────────────────────────────────────────────────
+# /mytradesettings
+# ─────────────────────────────────────────────────────────────────────
+
+async def mytradesettings_command(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Handle /mytradesettings – show current trade settings."""
+    text = (
+        f"⚙️ **TRADE SETTINGS**\n\n"
+        f"Current Rules:\n"
+        f"• Minimum Rating: {TRADE_ALLOWED_MIN_RATING} OVR\n"
+        f"• Trade Fee: {TRADE_FEE_PERCENT}% from both parties\n"
+        f"• Offer Expires: {TRADE_EXPIRES_SECONDS} seconds\n"
+        f"• Max Active Trades: 1\n"
+        f"• Allowed Ratings: Only same rating"
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
