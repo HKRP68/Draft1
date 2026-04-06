@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-8">
+  <div class="col-12 col-lg-8">
     <h2>{{ action }} Player</h2>
     <hr>
     <form method="post">
@@ -11,22 +11,22 @@
       <div class="card mb-3">
         <div class="card-header fw-bold">Basic Information</div>
         <div class="card-body row g-3">
-          <div class="col-md-6">
+          <div class="col-12 col-sm-6">
             <label class="form-label">Name <span class="text-danger">*</span></label>
             <input type="text" name="name" class="form-control" required
                    value="{{ player.get('name', '') if player is mapping else player.name|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Version</label>
             <input type="text" name="version" class="form-control"
                    value="{{ player.get('version', 'Base') if player is mapping else player.version|default('Base', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Rating (50–100) <span class="text-danger">*</span></label>
             <input type="number" name="rating" class="form-control" min="50" max="100" required
                    value="{{ player.get('rating', 50) if player is mapping else player.rating|default(50, true) }}">
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-sm-4">
             <label class="form-label">Category <span class="text-danger">*</span></label>
             <select name="category" class="form-select" required>
               {% set current_cat = player.get('category', '') if player is mapping else player.category|default('', true) %}
@@ -35,18 +35,18 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-sm-4">
             <label class="form-label">Country</label>
             <input type="text" name="country" class="form-control"
                    value="{{ player.get('country', '') if player is mapping else player.country|default('', true) }}">
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-sm-4">
             <label class="form-label">Image URL</label>
             <input type="url" name="image_url" class="form-control"
                    value="{{ player.get('image_url', '') if player is mapping else player.image_url|default('', true) }}">
           </div>
-          <div class="col-md-4">
-            <div class="form-check mt-4">
+          <div class="col-12 col-sm-4">
+            <div class="form-check mt-sm-4">
               {% set is_active = player.get('is_active', true) if player is mapping else player.is_active|default(true, true) %}
               <input type="checkbox" name="is_active" class="form-check-input" id="is_active"
                      {% if is_active %}checked{% endif %}>
@@ -60,7 +60,7 @@
       <div class="card mb-3">
         <div class="card-header fw-bold">Batting</div>
         <div class="card-body row g-3">
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Bat Hand</label>
             <select name="bat_hand" class="form-select">
               <option value="">—</option>
@@ -70,27 +70,27 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Bat Rating</label>
             <input type="number" name="bat_rating" class="form-control" min="0" max="100"
                    value="{{ player.get('bat_rating', '') if player is mapping else player.bat_rating|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Bat Average</label>
             <input type="number" name="bat_avg" class="form-control" step="0.1"
                    value="{{ player.get('bat_avg', '') if player is mapping else player.bat_avg|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Strike Rate</label>
             <input type="number" name="strike_rate" class="form-control" step="0.1"
                    value="{{ player.get('strike_rate', '') if player is mapping else player.strike_rate|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Runs</label>
             <input type="number" name="runs" class="form-control"
                    value="{{ player.get('runs', '') if player is mapping else player.runs|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Centuries</label>
             <input type="number" name="centuries" class="form-control"
                    value="{{ player.get('centuries', '') if player is mapping else player.centuries|default('', true) }}">
@@ -102,7 +102,7 @@
       <div class="card mb-3">
         <div class="card-header fw-bold">Bowling</div>
         <div class="card-body row g-3">
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Bowl Hand</label>
             <select name="bowl_hand" class="form-select">
               <option value="">—</option>
@@ -112,7 +112,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Bowl Style</label>
             <select name="bowl_style" class="form-select">
               <option value="">—</option>
@@ -122,22 +122,22 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Bowl Rating</label>
             <input type="number" name="bowl_rating" class="form-control" min="0" max="100"
                    value="{{ player.get('bowl_rating', '') if player is mapping else player.bowl_rating|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Bowl Average</label>
             <input type="number" name="bowl_avg" class="form-control" step="0.1"
                    value="{{ player.get('bowl_avg', '') if player is mapping else player.bowl_avg|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Economy</label>
             <input type="number" name="economy" class="form-control" step="0.1"
                    value="{{ player.get('economy', '') if player is mapping else player.economy|default('', true) }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-6 col-sm-3">
             <label class="form-label">Wickets</label>
             <input type="number" name="wickets" class="form-control"
                    value="{{ player.get('wickets', '') if player is mapping else player.wickets|default('', true) }}">

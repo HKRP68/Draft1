@@ -56,6 +56,43 @@ docker-compose up -d
 | `BOT_TOKEN` | (required) | Telegram Bot API token |
 | `DATABASE_URL` | `sqlite:///./cricket_bot.db` | Database connection URL |
 | `LOG_LEVEL` | `INFO` | Logging level |
+| `ADMIN_PORT` | `5000` | Port for the admin panel |
+| `ADMIN_USERNAME` | `admin` | Admin panel login username |
+| `ADMIN_PASSWORD` | (empty) | Admin panel login password (set this to enable auth) |
+| `ADMIN_SECRET_KEY` | `change-me-in-production` | Flask secret key for sessions |
+
+## 🌐 Admin Panel (Player Management)
+
+The bot includes a **web-based admin panel** you can open from your Android phone's browser to manage all players. Any changes you make (create, edit, delete) take effect in the bot immediately because they share the same database.
+
+### How to Access
+
+Once the bot is running, open your phone browser and go to:
+
+```
+http://<your-server-ip>:5000/admin
+```
+
+If you set `ADMIN_PASSWORD` in your `.env` file, the browser will ask for a username and password (HTTP Basic Auth).
+
+### Features
+
+- **View all players** – paginated list with search by name, filter by category/country
+- **Create players** – add new players with full stats (rating, batting, bowling)
+- **Edit players** – change any player field; updates apply instantly in the bot
+- **Delete players** – remove players from the database
+- **Mobile-friendly** – responsive Bootstrap 5 design works great on Android
+
+### Quick Setup for Android Access
+
+1. Deploy the bot on a server (e.g., Render, Railway, VPS) or run locally
+2. Set environment variables in your `.env` file:
+   ```
+   ADMIN_PASSWORD=your-secure-password
+   ADMIN_SECRET_KEY=some-random-string
+   ```
+3. Open `http://<server-ip>:5000/admin` on your Android browser
+4. Log in with the username `admin` and the password you set
 
 ## Player Database
 
