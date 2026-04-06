@@ -16,3 +16,9 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # Port for the health-check HTTP server (required by PaaS platforms like Render)
 PORT = int(os.getenv("PORT", "8080"))
+
+# Admin panel port (separate from health-check / bot)
+ADMIN_PORT = int(os.getenv("ADMIN_PORT", "5000"))
+
+# Secret key for Flask session / CSRF (generate a strong random key for production)
+ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "change-me-in-production")

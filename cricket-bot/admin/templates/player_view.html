@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ player.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>{{ player.name }}</h2>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.player_edit', player_id=player.id) }}"
+           class="btn btn-primary">Edit</a>
+        <form action="{{ url_for('admin.player_delete', player_id=player.id) }}"
+              method="post" class="d-inline"
+              onsubmit="return confirm('Delete {{ player.name }}?');">
+          <button class="btn btn-danger">Delete</button>
+        </form>
+        <a href="{{ url_for('admin.player_list') }}" class="btn btn-outline-secondary">Back</a>
+      </div>
+    </div>
+
+    <!-- Basic Info -->
+    <div class="card mb-3">
+      <div class="card-header fw-bold">Basic Information</div>
+      <div class="card-body">
+        <table class="table table-borderless mb-0">
+          <tr><th style="width:160px">ID</th><td>{{ player.id }}</td></tr>
+          <tr><th>Name</th><td>{{ player.name }}</td></tr>
+          <tr><th>Version</th><td>{{ player.version or '—' }}</td></tr>
+          <tr>
+            <th>Rating</th>
+            <td>
+              {% if player.rating >= 90 %}
+                <span class="badge bg-danger">{{ player.rating }}</span>
+              {% elif player.rating >= 80 %}
+                <span class="badge bg-warning text-dark">{{ player.rating }}</span>
+              {% elif player.rating >= 70 %}
+                <span class="badge bg-info text-dark">{{ player.rating }}</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ player.rating }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr><th>Category</th><td>{{ player.category }}</td></tr>
+          <tr><th>Country</th><td>{{ player.country or '—' }}</td></tr>
+          <tr>
+            <th>Active</th>
+            <td>
+              {% if player.is_active %}
+                <span class="badge bg-success">Yes</span>
+              {% else %}
+                <span class="badge bg-secondary">No</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr><th>Image URL</th><td>{{ player.image_url or '—' }}</td></tr>
+          <tr><th>Created</th><td>{{ player.created_at.strftime('%Y-%m-%d %H:%M UTC') if player.created_at else '—' }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Batting Stats -->
+    <div class="card mb-3">
+      <div class="card-header fw-bold">Batting</div>
+      <div class="card-body">
+        <table class="table table-borderless mb-0">
+          <tr><th style="width:160px">Bat Hand</th><td>{{ player.bat_hand or '—' }}</td></tr>
+          <tr><th>Bat Rating</th><td>{{ player.bat_rating if player.bat_rating is not none else '—' }}</td></tr>
+          <tr><th>Bat Average</th><td>{{ player.bat_avg if player.bat_avg is not none else '—' }}</td></tr>
+          <tr><th>Strike Rate</th><td>{{ player.strike_rate if player.strike_rate is not none else '—' }}</td></tr>
+          <tr><th>Runs</th><td>{{ player.runs if player.runs is not none else '—' }}</td></tr>
+          <tr><th>Centuries</th><td>{{ player.centuries if player.centuries is not none else '—' }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bowling Stats -->
+    <div class="card mb-3">
+      <div class="card-header fw-bold">Bowling</div>
+      <div class="card-body">
+        <table class="table table-borderless mb-0">
+          <tr><th style="width:160px">Bowl Hand</th><td>{{ player.bowl_hand or '—' }}</td></tr>
+          <tr><th>Bowl Style</th><td>{{ player.bowl_style or '—' }}</td></tr>
+          <tr><th>Bowl Rating</th><td>{{ player.bowl_rating if player.bowl_rating is not none else '—' }}</td></tr>
+          <tr><th>Bowl Average</th><td>{{ player.bowl_avg if player.bowl_avg is not none else '—' }}</td></tr>
+          <tr><th>Economy</th><td>{{ player.economy if player.economy is not none else '—' }}</td></tr>
+          <tr><th>Wickets</th><td>{{ player.wickets if player.wickets is not none else '—' }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

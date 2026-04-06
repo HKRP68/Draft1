@@ -4,3 +4,4 @@ pydantic==2.7.4
 imgkit==1.2.3
 python-dotenv==1.0.1
 psycopg2-binary==2.9.9
+flask==3.1.1
