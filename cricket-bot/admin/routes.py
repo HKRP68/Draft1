@@ -1,6 +1,6 @@
 """Admin panel routes for Player CRUD operations."""
 
-import functools
+import logging
 import math
 
 from flask import (
@@ -42,22 +42,6 @@ def _authenticate():
         401,
         {"WWW-Authenticate": 'Basic realm="Cricket Bot Admin"'},
     )
-
-
-def require_auth(f):
-    """Decorator that enforces HTTP Basic Auth when ADMIN_PASSWORD is set."""
-
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        if not ADMIN_PASSWORD:
-            # No password configured – skip auth (development convenience)
-            return f(*args, **kwargs)
-        auth = request.authorization
-        if not auth or not _check_auth(auth.username, auth.password):
-            return _authenticate()
-        return f(*args, **kwargs)
-
-    return decorated
 
 
 @admin_bp.before_request

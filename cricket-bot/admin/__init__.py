@@ -5,7 +5,7 @@ import logging
 from flask import Flask
 
 from config.database import SessionLocal
-from config.settings import ADMIN_SECRET_KEY
+from config.settings import ADMIN_PASSWORD, ADMIN_SECRET_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +21,17 @@ def create_app() -> Flask:
             "Set a strong random value via the ADMIN_SECRET_KEY env var."
         )
 
+    if not ADMIN_PASSWORD:
+        logger.warning(
+            "ADMIN_PASSWORD is not set – admin panel has no authentication. "
+            "Set ADMIN_PASSWORD env var to enable HTTP Basic Auth."
+        )
+
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         """Close the scoped database session at the end of each request."""
-        SessionLocal.remove() if hasattr(SessionLocal, "remove") else None
+        if hasattr(SessionLocal, "remove"):
+            SessionLocal.remove()
 
     from admin.routes import admin_bp
 
