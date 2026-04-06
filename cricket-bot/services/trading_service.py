@@ -142,14 +142,9 @@ def accept_trade(db: Session, trade_id: int, user: User) -> dict:
             return {"success": False, "error": "⏰ Trade offer has expired"}
         return {"success": False, "error": f"Trade is no longer pending (status: {trade.status})"}
 
-    # Re-load users
-    from database.crud import get_user_by_telegram_id
-    from sqlalchemy.orm import Session as _S
-
-    # Use ORM to reload
-    from database.models import User as UserModel
-    initiator = db.query(UserModel).filter(UserModel.id == trade.initiator_id).first()
-    receiver = db.query(UserModel).filter(UserModel.id == trade.receiver_id).first()
+    # Re-load users using already-imported User model
+    initiator = db.query(User).filter(User.id == trade.initiator_id).first()
+    receiver = db.query(User).filter(User.id == trade.receiver_id).first()
 
     # Verify both still own the player
     initiator_entry = _get_first_roster_entry(db, initiator, trade.initiator_player_id)

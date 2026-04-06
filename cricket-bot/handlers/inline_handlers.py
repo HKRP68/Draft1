@@ -5,9 +5,9 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from config.constants import BUY_SELL_VALUES, TRADE_EXPIRES_SECONDS, TRADE_FEE_PERCENT
+from config.constants import BUY_SELL_VALUES, TRADE_ALLOWED_MIN_RATING, TRADE_EXPIRES_SECONDS, TRADE_FEE_PERCENT
 from config.database import SessionLocal
-from database.crud import get_user_by_telegram_id, get_user_by_username
+from database.crud import get_roster_entry_by_id, get_user_by_telegram_id, get_user_by_username
 from database.models import User
 from services.rating_matcher_service import (
     find_same_rating_players_in_roster,
@@ -246,7 +246,6 @@ async def trade_my_pick_callback(
             await query.edit_message_text("❌ User not found.")
             return
 
-        from database.crud import get_roster_entry_by_id
         my_entry = get_roster_entry_by_id(db, my_entry_id)
         if not my_entry or my_entry.user_id != initiator.id:
             await query.edit_message_text("❌ Player not found in your roster.")
@@ -317,7 +316,6 @@ async def trade_their_pick_callback(
 
     db = SessionLocal()
     try:
-        from database.crud import get_roster_entry_by_id
         my_entry = get_roster_entry_by_id(db, my_entry_id)
         their_entry = get_roster_entry_by_id(db, their_entry_id)
         if not my_entry or not their_entry:
@@ -394,7 +392,6 @@ async def trade_send_callback(
             await query.edit_message_text("❌ User not found.")
             return
 
-        from database.crud import get_roster_entry_by_id
         my_entry = get_roster_entry_by_id(db, my_entry_id)
         their_entry = get_roster_entry_by_id(db, their_entry_id)
         if not my_entry or not their_entry:
@@ -731,8 +728,8 @@ async def _show_rating_selection(query, db, initiator: User, receiver: User) -> 
 
     text = (
         f"🔍 **TRADE WITH @{recv_uname}**\n\n"
-        f"Your tradeable players (rating ≥ 75):\n{my_lines}\n\n"
-        f"Their tradeable players (rating ≥ 75):\n{their_lines}\n\n"
+        f"Your tradeable players (rating ≥ {TRADE_ALLOWED_MIN_RATING}):\n{my_lines}\n\n"
+        f"Their tradeable players (rating ≥ {TRADE_ALLOWED_MIN_RATING}):\n{their_lines}\n\n"
         f"✅ Matching Ratings: {', '.join(str(r) + ' OVR' for r in matching)}"
     )
 

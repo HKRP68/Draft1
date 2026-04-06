@@ -21,10 +21,6 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
-def utcnow():
-    return datetime.now(timezone.utc)
-
-
 class User(Base):
     __tablename__ = "users"
 
