@@ -11,9 +11,10 @@ from telegram.ext import (
     CommandHandler,
 )
 
+from admin import create_app
 from config.database import init_db
 from config.logging_config import setup_logging
-from config.settings import BOT_TOKEN, PORT
+from config.settings import ADMIN_PORT, BOT_TOKEN, PORT
 from database.seed import seed_database
 from handlers.callback_handlers import button_callback
 from handlers.command_handlers import (
@@ -75,6 +76,17 @@ def main():
         target=start_health_server, args=(PORT,), daemon=True
     )
     health_thread.start()
+
+    # Start the Flask admin panel in a daemon thread
+    admin_app = create_app()
+    admin_thread = threading.Thread(
+        target=lambda: admin_app.run(
+            host="0.0.0.0", port=ADMIN_PORT, debug=False, use_reloader=False
+        ),
+        daemon=True,
+    )
+    admin_thread.start()
+    logger.info("Admin panel running on http://0.0.0.0:%d/admin", ADMIN_PORT)
 
     # Initialize database
     logger.info("Initializing database...")

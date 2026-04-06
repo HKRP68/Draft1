@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    ports:
+      - "5000:5000"
     volumes:
       - ./logs:/app/logs
       - ./cricket_bot.db:/app/cricket_bot.db
