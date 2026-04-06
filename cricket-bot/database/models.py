@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -24,7 +25,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    telegram_id = Column(Integer, unique=True, nullable=False, index=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String(255), nullable=True)
     first_name = Column(String(255), nullable=True)
     total_coins = Column(Integer, default=0)
@@ -45,6 +46,7 @@ class Player(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), unique=True, nullable=False, index=True)
+    version = Column(String(50), nullable=True, default="Base")
     rating = Column(Integer, nullable=False, index=True)
     category = Column(String(50), nullable=False)  # Batsman/Bowler/All-rounder/Wicket Keeper
     country = Column(String(100), nullable=True)
