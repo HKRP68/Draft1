@@ -79,6 +79,7 @@ def _generate_player_data():
 
             all_players.append({
                 "name": name,
+                "version": "Base",
                 "rating": rating,
                 "category": category,
                 "country": country,
@@ -115,6 +116,7 @@ def _generate_player_data():
 
         all_players.append({
             "name": name,
+            "version": "Base",
             "rating": rating,
             "category": category,
             "country": country,

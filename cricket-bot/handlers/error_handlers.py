@@ -1,6 +1,5 @@
 """Error handling for the Telegram bot."""
 
-import html
 import json
 import logging
 import traceback

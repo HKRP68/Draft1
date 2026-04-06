@@ -78,6 +78,7 @@ def get_player_stats(player: Player) -> dict:
     return {
         "id": player.id,
         "name": player.name,
+        "version": player.version or "Base",
         "rating": player.rating,
         "category": player.category,
         "country": player.country or "Unknown",

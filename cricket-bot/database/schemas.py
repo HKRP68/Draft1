@@ -35,6 +35,7 @@ class UserResponse(BaseModel):
 
 class PlayerCreate(BaseModel):
     name: str
+    version: Optional[str] = "Base"
     rating: int = Field(ge=50, le=100)
     category: str
     country: Optional[str] = None
@@ -57,6 +58,7 @@ class PlayerCreate(BaseModel):
 class PlayerResponse(BaseModel):
     id: int
     name: str
+    version: Optional[str]
     rating: int
     category: str
     country: Optional[str]
