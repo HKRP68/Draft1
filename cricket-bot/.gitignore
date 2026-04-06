@@ -1,7 +1,6 @@
 # Cricket Simulator Telegram Bot
 
 # Environment
-.env
 *.db
 *.sqlite3
 
