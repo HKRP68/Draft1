@@ -1,0 +1,45 @@
+# Cricket Simulator Telegram Bot
+
+# Environment
+.env
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/*.log
+
+# Temp files
+*.tmp
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated images
+assets/player_images/*.png
+assets/player_images/*.jpg
+
+# Docker
+docker-compose.override.yml
