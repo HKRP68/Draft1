@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  cricket-bot:
+    build: .
+    container_name: cricket-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+      - ./cricket_bot.db:/app/cricket_bot.db
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    container_name: cricket-bot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cricket_bot
+      POSTGRES_PASSWORD: cricket_bot_password
+      POSTGRES_DB: cricket_bot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
