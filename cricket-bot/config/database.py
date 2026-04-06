@@ -28,6 +28,6 @@ def get_db():
 
 def init_db():
     """Create all tables defined in models."""
-    from database.models import User, Player, UserRoster, UserStats  # noqa: F401
+    from database.models import User, Player, UserRoster, UserStats, Trade  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

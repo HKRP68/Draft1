@@ -20,7 +20,11 @@ from handlers.command_handlers import (
     debut_command,
     gspin_command,
     myroster_command,
+    mytradesettings_command,
     playerinfo_command,
+    release_command,
+    releasemultiple_command,
+    trade_command,
 )
 from handlers.error_handlers import error_handler
 
@@ -57,8 +61,12 @@ def main():
     app.add_handler(CommandHandler("daily", daily_command))
     app.add_handler(CommandHandler("myroster", myroster_command))
     app.add_handler(CommandHandler("playerinfo", playerinfo_command))
+    app.add_handler(CommandHandler("release", release_command))
+    app.add_handler(CommandHandler("releasemultiple", releasemultiple_command))
+    app.add_handler(CommandHandler("trade", trade_command))
+    app.add_handler(CommandHandler("mytradesettings", mytradesettings_command))
 
-    # Register callback handler for Retain/Release buttons
+    # Register callback handler for all inline buttons
     app.add_handler(CallbackQueryHandler(button_callback))
 
     # Register error handler

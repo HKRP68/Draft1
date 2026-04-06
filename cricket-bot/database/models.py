@@ -21,6 +21,10 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
+def utcnow():
+    return datetime.now(timezone.utc)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -104,3 +108,28 @@ class UserStats(Base):
 
     def __repr__(self):
         return f"<UserStats(user_id={self.user_id}, streak={self.streak_count})>"
+
+
+class Trade(Base):
+    __tablename__ = "trades"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    initiator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    initiator_player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
+    receiver_player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
+    # pending / accepted / rejected / completed / expired / cancelled
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    trade_fee = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    initiator = relationship("User", foreign_keys=[initiator_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
+    initiator_player = relationship("Player", foreign_keys=[initiator_player_id])
+    receiver_player = relationship("Player", foreign_keys=[receiver_player_id])
+
+    def __repr__(self):
+        return f"<Trade(id={self.id}, status={self.status})>"

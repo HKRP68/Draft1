@@ -186,3 +186,19 @@ BUY_SELL_VALUES = {
     51:  (200, 120),
     50:  (175, 105),
 }
+
+# ═══════════════════════════════════════════════════════════════
+# Roster / Release Settings
+# ═══════════════════════════════════════════════════════════════
+
+DUPLICATE_ALLOWED = True        # Players can be owned multiple times
+ROSTER_PAGE_SIZE = 10           # Players shown per /myroster page
+
+# ═══════════════════════════════════════════════════════════════
+# Trading Settings
+# ═══════════════════════════════════════════════════════════════
+
+TRADE_EXPIRES_SECONDS = 20      # Trade offer expires after 20 seconds
+MAX_ACTIVE_TRADES = 1           # Max 1 pending trade per user
+TRADE_ALLOWED_MIN_RATING = 75   # Only rating >= 75 can trade
+TRADE_FEE_PERCENT = 5           # 5 % fee on buy value (deducted from both)

@@ -4,10 +4,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from database.models import Player, User, UserRoster, UserStats
+from database.models import Player, Trade, User, UserRoster, UserStats
 
 logger = logging.getLogger(__name__)
 
@@ -218,3 +218,129 @@ def increment_streaks_completed(db: Session, stats: UserStats) -> None:
     """Increment total streaks completed."""
     stats.total_streaks_completed += 1
     db.commit()
+
+
+# ═══════════════════════════════════════════════════════════════
+# UserRoster extended queries
+# ═══════════════════════════════════════════════════════════════
+
+def get_roster_entries_by_rating(db: Session, user: User, rating: int) -> list[UserRoster]:
+    """Get all roster entries for a user matching a specific rating."""
+    from database.models import Player  # avoid circular at module level
+    return (
+        db.query(UserRoster)
+        .join(Player, UserRoster.player_id == Player.id)
+        .filter(UserRoster.user_id == user.id, Player.rating == rating)
+        .all()
+    )
+
+
+def get_roster_entry_by_id(db: Session, entry_id: int) -> Optional[UserRoster]:
+    """Get a single UserRoster entry by its primary key."""
+    return db.query(UserRoster).filter(UserRoster.id == entry_id).first()
+
+
+def remove_roster_entry(db: Session, user: User, entry: UserRoster) -> None:
+    """Remove a specific roster entry and decrement the user's roster count."""
+    db.delete(entry)
+    user.roster_count = max(0, user.roster_count - 1)
+    user.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    logger.info(
+        "Removed roster entry id=%d (player_id=%d) from user %s",
+        entry.id,
+        entry.player_id,
+        user.telegram_id,
+    )
+
+
+def get_user_by_username(db: Session, username: str) -> Optional[User]:
+    """Get a user by Telegram username (case-insensitive, without @)."""
+    clean = username.lstrip("@").lower()
+    return (
+        db.query(User)
+        .filter(func.lower(User.username) == clean)
+        .first()
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
+# Trade CRUD
+# ═══════════════════════════════════════════════════════════════
+
+def create_trade(
+    db: Session,
+    initiator: User,
+    receiver: User,
+    initiator_player_id: int,
+    receiver_player_id: int,
+    trade_fee: int,
+    expires_at: datetime,
+) -> Trade:
+    """Create a new pending trade."""
+    trade = Trade(
+        initiator_id=initiator.id,
+        receiver_id=receiver.id,
+        initiator_player_id=initiator_player_id,
+        receiver_player_id=receiver_player_id,
+        status="pending",
+        trade_fee=trade_fee,
+        expires_at=expires_at,
+    )
+    db.add(trade)
+    db.commit()
+    db.refresh(trade)
+    logger.info(
+        "Trade created id=%d initiator=%s receiver=%s",
+        trade.id,
+        initiator.telegram_id,
+        receiver.telegram_id,
+    )
+    return trade
+
+
+def get_trade_by_id(db: Session, trade_id: int) -> Optional[Trade]:
+    """Get a trade by its ID."""
+    return db.query(Trade).filter(Trade.id == trade_id).first()
+
+
+def get_pending_trades_for_user(db: Session, user: User) -> list[Trade]:
+    """Get all pending trades involving a user."""
+    return (
+        db.query(Trade)
+        .filter(
+            or_(Trade.initiator_id == user.id, Trade.receiver_id == user.id),
+            Trade.status == "pending",
+        )
+        .all()
+    )
+
+
+def count_active_trades_for_user(db: Session, user: User) -> int:
+    """Count pending trades where user is initiator or receiver."""
+    return (
+        db.query(func.count(Trade.id))
+        .filter(
+            or_(Trade.initiator_id == user.id, Trade.receiver_id == user.id),
+            Trade.status == "pending",
+        )
+        .scalar()
+        or 0
+    )
+
+
+def update_trade_status(
+    db: Session,
+    trade: Trade,
+    status: str,
+    completed_at: Optional[datetime] = None,
+) -> Trade:
+    """Update trade status."""
+    trade.status = status
+    trade.updated_at = datetime.now(timezone.utc)
+    if completed_at is not None:
+        trade.completed_at = completed_at
+    db.commit()
+    db.refresh(trade)
+    logger.info("Trade id=%d status updated to %s", trade.id, status)
+    return trade
