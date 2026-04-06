@@ -25,40 +25,44 @@ CARD_HTML_TEMPLATE = """<!DOCTYPE html>
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{
-    width: 400px;
-    height: 700px;
+    width: 420px;
+    height: 780px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     color: #fff;
     overflow: hidden;
   }}
   .card {{
-    width: 400px;
-    height: 700px;
-    padding: 20px;
+    width: 420px;
+    height: 780px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    border: 2px solid {tier_color};
+    border-radius: 16px;
+    position: relative;
   }}
   .header {{
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     color: #FFD700;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     letter-spacing: 2px;
   }}
   .player-image {{
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     border: 3px solid {tier_color};
     background: #2a2a4a;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
-    margin-bottom: 10px;
+    font-size: 44px;
+    margin-bottom: 6px;
     overflow: hidden;
+    box-shadow: 0 0 12px {tier_color}44;
   }}
   .player-image img {{
     width: 100%;
@@ -66,54 +70,81 @@ CARD_HTML_TEMPLATE = """<!DOCTYPE html>
     object-fit: cover;
   }}
   .player-name {{
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     text-align: center;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
     text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+  }}
+  .player-country {{
+    font-size: 13px;
+    color: #ccc;
+    margin-bottom: 4px;
   }}
   .rating {{
     font-size: 20px;
     font-weight: bold;
     color: {tier_color};
-    margin-bottom: 3px;
+    margin-bottom: 2px;
+  }}
+  .badges {{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
   }}
   .tier-badge {{
     display: inline-block;
-    padding: 3px 14px;
+    padding: 3px 12px;
     border-radius: 12px;
     background: {tier_color};
     color: #000;
     font-weight: bold;
-    font-size: 13px;
-    margin-bottom: 12px;
+    font-size: 12px;
+  }}
+  .version-badge {{
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.15);
+    color: #ddd;
+    font-weight: bold;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,0.25);
   }}
   .info-section {{
     width: 100%;
     background: rgba(255,255,255,0.08);
     border-radius: 10px;
-    padding: 10px 15px;
-    margin-bottom: 8px;
+    padding: 8px 14px;
+    margin-bottom: 6px;
   }}
   .info-row {{
     display: flex;
     justify-content: space-between;
     padding: 3px 0;
-    font-size: 13px;
+    font-size: 12.5px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }}
   .info-row:last-child {{ border-bottom: none; }}
   .info-label {{ color: #aaa; }}
   .info-value {{ font-weight: bold; }}
+  .section-title {{
+    font-size: 12px;
+    font-weight: bold;
+    color: {tier_color};
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }}
   .stats-grid {{
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4px 20px;
+    gap: 3px 18px;
     width: 100%;
     background: rgba(255,255,255,0.08);
     border-radius: 10px;
-    padding: 10px 15px;
-    margin-bottom: 8px;
+    padding: 8px 14px;
+    margin-bottom: 6px;
   }}
   .stat-item {{
     display: flex;
@@ -123,6 +154,27 @@ CARD_HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   .stat-label {{ color: #aaa; }}
   .stat-value {{ font-weight: bold; }}
+  .value-section {{
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 8px 14px;
+    margin-bottom: 6px;
+  }}
+  .value-item {{
+    text-align: center;
+  }}
+  .value-label {{
+    font-size: 11px;
+    color: #aaa;
+  }}
+  .value-amount {{
+    font-size: 14px;
+    font-weight: bold;
+    color: #FFD700;
+  }}
   .footer {{
     font-size: 11px;
     color: #888;
@@ -139,8 +191,12 @@ CARD_HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
 
   <div class="player-name">{player_name}</div>
+  <div class="player-country">🌍 {country}</div>
   <div class="rating">⭐ {rating} OVR</div>
-  <div class="tier-badge">{tier_emoji} {tier_name}</div>
+  <div class="badges">
+    <span class="tier-badge">{tier_emoji} {tier_name}</span>
+    <span class="version-badge">📋 {version}</span>
+  </div>
 
   <div class="info-section">
     <div class="info-row">
@@ -159,16 +215,9 @@ CARD_HTML_TEMPLATE = """<!DOCTYPE html>
       <span class="info-label">🌀 Bowl Style</span>
       <span class="info-value">{bowl_style}</span>
     </div>
-    <div class="info-row">
-      <span class="info-label">💰 Card Value</span>
-      <span class="info-value">{buy_value} 🪙</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">💸 Sell Value</span>
-      <span class="info-value">{sell_value} 🪙</span>
-    </div>
   </div>
 
+  <div class="section-title">📊 RATINGS &amp; STATS</div>
   <div class="stats-grid">
     <div class="stat-item">
       <span class="stat-label">Bat Rating</span>
@@ -193,6 +242,29 @@ CARD_HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="stat-item">
       <span class="stat-label">Economy</span>
       <span class="stat-value">{economy}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Runs</span>
+      <span class="stat-value">{runs}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Wickets</span>
+      <span class="stat-value">{wickets}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Centuries</span>
+      <span class="stat-value">{centuries}</span>
+    </div>
+  </div>
+
+  <div class="value-section">
+    <div class="value-item">
+      <div class="value-label">💰 Card Value</div>
+      <div class="value-amount">{buy_value} 🪙</div>
+    </div>
+    <div class="value-item">
+      <div class="value-label">💸 Sell Value</div>
+      <div class="value-amount">{sell_value} 🪙</div>
     </div>
   </div>
 
@@ -229,14 +301,21 @@ def generate_card(player_data: dict, output_path: Optional[str] = None) -> Optio
         sell_str = f"{player_data['sell_value']:,}"
         date_str = datetime.now(timezone.utc).strftime("%d %b %Y")
 
+        # Format career stats
+        runs_str = f"{player_data.get('runs', 0):,}"
+        wickets_str = f"{player_data.get('wickets', 0):,}"
+        centuries_str = f"{player_data.get('centuries', 0):,}"
+
         # Fill template
         html = CARD_HTML_TEMPLATE.format(
             tier_color=player_data["tier_color"],
             player_image_html=player_image_html,
             player_name=player_data["name"],
+            country=player_data.get("country", "Unknown"),
             rating=player_data["rating"],
             tier_emoji=player_data["tier_emoji"],
             tier_name=player_data["tier_name"],
+            version=player_data.get("version", "Base"),
             category=player_data["category"],
             bat_hand=player_data["bat_hand"],
             bowl_hand=player_data["bowl_hand"],
@@ -249,6 +328,9 @@ def generate_card(player_data: dict, output_path: Optional[str] = None) -> Optio
             strike_rate=player_data["strike_rate"],
             bowl_avg=player_data["bowl_avg"],
             economy=player_data["economy"],
+            runs=runs_str,
+            wickets=wickets_str,
+            centuries=centuries_str,
             date_claimed=date_str,
         )
 
@@ -260,8 +342,8 @@ def generate_card(player_data: dict, output_path: Optional[str] = None) -> Optio
         # ImgKit options
         options = {
             "format": "png",
-            "width": 400,
-            "height": 700,
+            "width": 420,
+            "height": 780,
             "quality": 100,
             "enable-local-file-access": "",
             "quiet": "",
@@ -280,23 +362,30 @@ def format_card_text(player_data: dict) -> str:
     """Format player data as text (fallback when image generation fails)."""
     buy_str = f"{player_data['buy_value']:,}"
     sell_str = f"{player_data['sell_value']:,}"
+    runs_str = f"{player_data.get('runs', 0):,}"
+    wickets_str = f"{player_data.get('wickets', 0):,}"
 
     return (
         f"🏏 *CRICKET CARD*\n\n"
         f"📛 *{player_data['name']}*\n"
+        f"🌍 Country: {player_data.get('country', 'Unknown')}\n"
         f"⭐ *Rating:* {player_data['rating']} OVR\n"
-        f"{player_data['tier_emoji']} *Tier:* {player_data['tier_name']}\n\n"
+        f"{player_data['tier_emoji']} *Tier:* {player_data['tier_name']}\n"
+        f"📋 *Version:* {player_data.get('version', 'Base')}\n\n"
         f"🎯 *Category:* {player_data['category']}\n"
         f"🏏 *Bat Hand:* {player_data['bat_hand']}\n"
         f"🎳 *Bowl Hand:* {player_data['bowl_hand']}\n"
-        f"🌀 *Bowl Style:* {player_data['bowl_style']}\n"
-        f"💰 *Card Value:* {buy_str} 🪙\n"
-        f"💸 *Sell Value:* {sell_str} 🪙\n\n"
+        f"🌀 *Bowl Style:* {player_data['bowl_style']}\n\n"
         f"📊 *Stats:*\n"
         f"• Bat Rating: {player_data['bat_rating']}\n"
         f"• Bowl Rating: {player_data['bowl_rating']}\n"
         f"• Bat Avg: {player_data['bat_avg']}\n"
         f"• Strike Rate: {player_data['strike_rate']}\n"
         f"• Bowl Avg: {player_data['bowl_avg']}\n"
-        f"• Economy: {player_data['economy']}"
+        f"• Economy: {player_data['economy']}\n"
+        f"• Runs: {runs_str}\n"
+        f"• Wickets: {wickets_str}\n"
+        f"• Centuries: {player_data.get('centuries', 0)}\n\n"
+        f"💰 *Card Value:* {buy_str} 🪙\n"
+        f"💸 *Sell Value:* {sell_str} 🪙"
     )
