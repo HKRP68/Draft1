@@ -2,7 +2,7 @@
 
 import logging
 
-from flask import Flask
+from flask import Flask, render_template
 
 from config.database import SessionLocal
 from config.settings import ADMIN_PASSWORD, ADMIN_SECRET_KEY
@@ -33,7 +33,17 @@ def create_app() -> Flask:
         if hasattr(SessionLocal, "remove"):
             SessionLocal.remove()
 
+    # ── Blueprints ──────────────────────────────────────────────
     from admin.routes import admin_bp
+    from admin.miniapp_api import miniapp_api
 
     app.register_blueprint(admin_bp)
+    app.register_blueprint(miniapp_api)
+
+    # ── Mini App HTML endpoint ──────────────────────────────────
+    @app.route("/miniapp")
+    def miniapp_page():
+        """Serve the Telegram Mini App single-page admin panel."""
+        return render_template("miniapp.html")
+
     return app

@@ -26,3 +26,23 @@ ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "change-me-in-production")
 # Admin panel credentials (basic auth)
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+
+# Telegram admin user IDs (comma-separated) – these users can run /addplayer, /editplayer, etc.
+_raw_admin_ids = os.getenv("ADMIN_TELEGRAM_IDS", "")
+ADMIN_TELEGRAM_IDS: list[int] = [
+    int(x.strip()) for x in _raw_admin_ids.split(",") if x.strip().isdigit()
+]
+
+# Mini App admin panel
+MINIAPP_URL = os.getenv("MINIAPP_URL", "")  # e.g. https://your-app.onrender.com/miniapp
+MINIAPP_JWT_SECRET = os.getenv("MINIAPP_JWT_SECRET", ADMIN_SECRET_KEY)
+MINIAPP_INIT_EMAIL = os.getenv("MINIAPP_INIT_EMAIL", "")
+MINIAPP_INIT_PASSWORD = os.getenv("MINIAPP_INIT_PASSWORD", "")
+
+# Google Sheets integration
+# Path to the service-account JSON key file (downloaded from Google Cloud Console)
+GOOGLE_SHEETS_CREDENTIALS_FILE = os.getenv("GOOGLE_SHEETS_CREDENTIALS_FILE", "")
+# The full URL or spreadsheet ID of the Google Sheet used for player management
+GOOGLE_SHEETS_SPREADSHEET_ID = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID", "")
+# Name of the worksheet/tab inside the spreadsheet (default: "Players")
+GOOGLE_SHEETS_WORKSHEET_NAME = os.getenv("GOOGLE_SHEETS_WORKSHEET_NAME", "Players")

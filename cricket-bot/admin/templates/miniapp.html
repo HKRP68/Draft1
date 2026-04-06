@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>🏏 Cricket Bot Admin</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YcnS/YSPKAH2fIX+8wFon1ICGNRQMahb2HA+"
+      crossorigin="anonymous">
+<style>
+:root {
+  --tg-bg: var(--tg-theme-bg-color, #ffffff);
+  --tg-text: var(--tg-theme-text-color, #222222);
+  --tg-hint: var(--tg-theme-hint-color, #999999);
+  --tg-link: var(--tg-theme-link-color, #2678b6);
+  --tg-btn: var(--tg-theme-button-color, #3390ec);
+  --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+  --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
+}
+body {
+  background: var(--tg-bg);
+  color: var(--tg-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding-bottom: 60px;
+  min-height: 100vh;
+}
+.btn-tg {
+  background: var(--tg-btn);
+  color: var(--tg-btn-text);
+  border: none;
+}
+.btn-tg:hover, .btn-tg:active {
+  background: var(--tg-btn);
+  color: var(--tg-btn-text);
+  opacity: 0.85;
+}
+.card { border-radius: 12px; }
+.badge-rating { font-size: .85rem; }
+.nav-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--tg-secondary-bg);
+  border-top: 1px solid #ddd;
+  z-index: 1000;
+  display: flex;
+}
+.nav-bottom button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 4px;
+  font-size: 0.72rem;
+  color: var(--tg-hint);
+  cursor: pointer;
+}
+.nav-bottom button.active {
+  color: var(--tg-btn);
+  font-weight: 600;
+}
+.nav-bottom button .icon { font-size: 1.3rem; display: block; }
+.search-bar { position: sticky; top: 0; z-index: 10; background: var(--tg-bg); padding: 8px 0; }
+.player-row { cursor: pointer; }
+.player-row:active { background: var(--tg-secondary-bg); }
+.stat-card { text-align: center; }
+.stat-card .num { font-size: 1.8rem; font-weight: 700; color: var(--tg-btn); }
+.stat-card .label { color: var(--tg-hint); font-size: 0.8rem; }
+.login-container { display: flex; align-items: center; justify-content: center; min-height: 90vh; }
+#app > section { display: none; }
+#app > section.active { display: block; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══════════ LOGIN ═══════════ -->
+<section id="sec-login" class="active">
+<div class="login-container">
+  <div class="card shadow-sm mx-3" style="max-width:360px; width:100%;">
+    <div class="card-body p-4">
+      <h4 class="text-center mb-1">🏏 Cricket Bot</h4>
+      <p class="text-center text-muted mb-3" style="font-size:.85rem">Admin Panel</p>
+      <div id="login-error" class="alert alert-danger d-none py-2" style="font-size:.85rem"></div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" id="login-email" class="form-control" placeholder="admin@example.com" autocomplete="email">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password" class="form-control" placeholder="••••••" autocomplete="current-password">
+      </div>
+      <button id="btn-login" class="btn btn-tg w-100" onclick="doLogin()">Sign In</button>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<section id="sec-dashboard">
+<div class="px-3 pt-3">
+  <h5 class="mb-3">📊 Dashboard</h5>
+  <div class="row g-2 mb-3" id="stats-cards"></div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6>By Category</h6>
+      <div id="stats-categories"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════ PLAYERS ═══════════ -->
+<section id="sec-players">
+<div class="px-3 pt-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">🏏 Players</h5>
+    <button class="btn btn-sm btn-tg" onclick="showPlayerForm()">+ New</button>
+  </div>
+  <div class="search-bar">
+    <div class="input-group input-group-sm">
+      <input type="text" id="player-search" class="form-control" placeholder="Search players…"
+             oninput="debounceSearch()">
+      <select id="player-cat-filter" class="form-select" style="max-width:140px" onchange="loadPlayers(1)">
+        <option value="">All</option>
+        <option>Batsman</option>
+        <option>Bowler</option>
+        <option>All-rounder</option>
+        <option>Wicket Keeper</option>
+      </select>
+    </div>
+  </div>
+  <div id="player-list"></div>
+  <div id="player-pagination" class="d-flex justify-content-center mt-2 mb-3"></div>
+</div>
+</section>
+
+<!-- ═══════════ PLAYER FORM (create/edit) ═══════════ -->
+<section id="sec-player-form">
+<div class="px-3 pt-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 id="pf-title" class="mb-0">New Player</h5>
+    <button class="btn btn-sm btn-outline-secondary" onclick="navigateTo('players')">Cancel</button>
+  </div>
+  <form id="player-form" onsubmit="savePlayer(event)">
+    <input type="hidden" id="pf-id">
+    <div class="card mb-2">
+      <div class="card-body row g-2">
+        <div class="col-8"><label class="form-label form-label-sm">Name *</label>
+          <input type="text" id="pf-name" class="form-control form-control-sm" required></div>
+        <div class="col-4"><label class="form-label form-label-sm">Rating *</label>
+          <input type="number" id="pf-rating" class="form-control form-control-sm" min="50" max="100" required></div>
+        <div class="col-6"><label class="form-label form-label-sm">Category *</label>
+          <select id="pf-category" class="form-select form-select-sm" required>
+            <option>Batsman</option><option>Bowler</option><option>All-rounder</option><option>Wicket Keeper</option>
+          </select></div>
+        <div class="col-6"><label class="form-label form-label-sm">Country</label>
+          <input type="text" id="pf-country" class="form-control form-control-sm"></div>
+        <div class="col-6"><label class="form-label form-label-sm">Version</label>
+          <input type="text" id="pf-version" class="form-control form-control-sm" value="Base"></div>
+        <div class="col-6"><label class="form-label form-label-sm">Image URL</label>
+          <input type="url" id="pf-image_url" class="form-control form-control-sm"></div>
+        <div class="col-12">
+          <div class="form-check form-switch mt-1">
+            <input class="form-check-input" type="checkbox" id="pf-is_active" checked>
+            <label class="form-check-label" for="pf-is_active">Active</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-2">
+      <div class="card-header py-1 fw-bold" style="font-size:.85rem">Batting</div>
+      <div class="card-body row g-2">
+        <div class="col-4"><label class="form-label form-label-sm">Hand</label>
+          <select id="pf-bat_hand" class="form-select form-select-sm"><option value="">—</option><option>Right</option><option>Left</option></select></div>
+        <div class="col-4"><label class="form-label form-label-sm">Bat Rating</label>
+          <input type="number" id="pf-bat_rating" class="form-control form-control-sm"></div>
+        <div class="col-4"><label class="form-label form-label-sm">Avg</label>
+          <input type="number" id="pf-bat_avg" class="form-control form-control-sm" step="0.1"></div>
+        <div class="col-4"><label class="form-label form-label-sm">SR</label>
+          <input type="number" id="pf-strike_rate" class="form-control form-control-sm" step="0.1"></div>
+        <div class="col-4"><label class="form-label form-label-sm">Runs</label>
+          <input type="number" id="pf-runs" class="form-control form-control-sm"></div>
+        <div class="col-4"><label class="form-label form-label-sm">100s</label>
+          <input type="number" id="pf-centuries" class="form-control form-control-sm"></div>
+      </div>
+    </div>
+    <div class="card mb-2">
+      <div class="card-header py-1 fw-bold" style="font-size:.85rem">Bowling</div>
+      <div class="card-body row g-2">
+        <div class="col-4"><label class="form-label form-label-sm">Hand</label>
+          <select id="pf-bowl_hand" class="form-select form-select-sm"><option value="">—</option><option>Right</option><option>Left</option></select></div>
+        <div class="col-4"><label class="form-label form-label-sm">Style</label>
+          <select id="pf-bowl_style" class="form-select form-select-sm"><option value="">—</option><option>Fast</option><option>Off Spinner</option><option>Leg Spinner</option><option>Medium Pacer</option></select></div>
+        <div class="col-4"><label class="form-label form-label-sm">Bowl Rating</label>
+          <input type="number" id="pf-bowl_rating" class="form-control form-control-sm"></div>
+        <div class="col-4"><label class="form-label form-label-sm">Avg</label>
+          <input type="number" id="pf-bowl_avg" class="form-control form-control-sm" step="0.1"></div>
+        <div class="col-4"><label class="form-label form-label-sm">Econ</label>
+          <input type="number" id="pf-economy" class="form-control form-control-sm" step="0.1"></div>
+        <div class="col-4"><label class="form-label form-label-sm">Wkts</label>
+          <input type="number" id="pf-wickets" class="form-control form-control-sm"></div>
+      </div>
+    </div>
+    <div id="pf-error" class="alert alert-danger d-none py-2 mb-2" style="font-size:.85rem"></div>
+    <button type="submit" class="btn btn-tg w-100 mb-3">Save Player</button>
+    <div id="pf-delete-wrap" class="d-none mb-3">
+      <button type="button" class="btn btn-outline-danger w-100" onclick="deleteCurrentPlayer()">Delete Player</button>
+    </div>
+  </form>
+</div>
+</section>
+
+<!-- ═══════════ ADMINS ═══════════ -->
+<section id="sec-admins">
+<div class="px-3 pt-3">
+  <h5 class="mb-3">👥 Admin Users</h5>
+  <div id="admin-list" class="mb-3"></div>
+  <div class="card">
+    <div class="card-body">
+      <h6>Add New Admin</h6>
+      <div id="admin-error" class="alert alert-danger d-none py-2" style="font-size:.85rem"></div>
+      <div class="row g-2">
+        <div class="col-12"><input type="email" id="new-admin-email" class="form-control form-control-sm" placeholder="Email"></div>
+        <div class="col-6"><input type="password" id="new-admin-password" class="form-control form-control-sm" placeholder="Password (6+ chars)"></div>
+        <div class="col-6"><input type="text" id="new-admin-name" class="form-control form-control-sm" placeholder="Display name"></div>
+        <div class="col-12"><button class="btn btn-sm btn-tg w-100" onclick="createAdmin()">Add Admin</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════ BOTTOM NAV ═══════════ -->
+<nav id="bottom-nav" class="nav-bottom d-none">
+  <button onclick="navigateTo('dashboard')" id="nav-dashboard"><span class="icon">📊</span>Dashboard</button>
+  <button onclick="navigateTo('players')" id="nav-players"><span class="icon">🏏</span>Players</button>
+  <button onclick="navigateTo('admins')" id="nav-admins"><span class="icon">👥</span>Admins</button>
+  <button onclick="doLogout()" id="nav-logout"><span class="icon">🚪</span>Logout</button>
+</nav>
+
+</div><!-- #app -->
+
+<script>
+/* ═══════════ STATE ═══════════ */
+const API = (window.location.origin || '') + '/miniapp/api';
+let TOKEN = localStorage.getItem('miniapp_token') || '';
+let currentPage = 1;
+let searchTimer = null;
+let editingPlayerId = null;
+
+/* ═══════════ TELEGRAM WEB APP ═══════════ */
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+
+/* ═══════════ API HELPER ═══════════ */
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  const res = await fetch(API + path, { ...opts, headers });
+  const data = await res.json();
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+/* ═══════════ AUTH ═══════════ */
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('d-none');
+  try {
+    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password: pwd }) });
+    TOKEN = data.token;
+    localStorage.setItem('miniapp_token', TOKEN);
+    enterApp();
+  } catch (e) {
+    errEl.textContent = e.error || 'Login failed';
+    errEl.classList.remove('d-none');
+  }
+}
+
+function doLogout() {
+  TOKEN = '';
+  localStorage.removeItem('miniapp_token');
+  showSection('login');
+  document.getElementById('bottom-nav').classList.add('d-none');
+}
+
+async function checkToken() {
+  if (!TOKEN) return false;
+  try { await api('/auth/me'); return true; }
+  catch { TOKEN = ''; localStorage.removeItem('miniapp_token'); return false; }
+}
+
+async function enterApp() {
+  showSection('dashboard');
+  document.getElementById('bottom-nav').classList.remove('d-none');
+  loadDashboard();
+}
+
+/* ═══════════ NAVIGATION ═══════════ */
+function showSection(name) {
+  document.querySelectorAll('#app > section').forEach(s => s.classList.remove('active'));
+  const sec = document.getElementById('sec-' + name);
+  if (sec) sec.classList.add('active');
+  document.querySelectorAll('.nav-bottom button').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nav-' + name);
+  if (nb) nb.classList.add('active');
+}
+
+function navigateTo(name) {
+  showSection(name);
+  if (name === 'dashboard') loadDashboard();
+  else if (name === 'players') loadPlayers(1);
+  else if (name === 'admins') loadAdmins();
+}
+
+/* ═══════════ DASHBOARD ═══════════ */
+async function loadDashboard() {
+  try {
+    const d = await api('/stats');
+    document.getElementById('stats-cards').innerHTML = `
+      <div class="col-4"><div class="card stat-card p-2"><div class="num">${d.total_players}</div><div class="label">Players</div></div></div>
+      <div class="col-4"><div class="card stat-card p-2"><div class="num">${d.active_players}</div><div class="label">Active</div></div></div>
+      <div class="col-4"><div class="card stat-card p-2"><div class="num">${d.total_users}</div><div class="label">Users</div></div></div>
+    `;
+    const cats = d.categories || {};
+    document.getElementById('stats-categories').innerHTML = Object.entries(cats)
+      .map(([k, v]) => `<div class="d-flex justify-content-between"><span>${k}</span><strong>${v}</strong></div>`)
+      .join('') || '<span class="text-muted">No data</span>';
+  } catch (e) {
+    if (e.status === 401) doLogout();
+  }
+}
+
+/* ═══════════ PLAYERS ═══════════ */
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadPlayers(1), 300);
+}
+
+async function loadPlayers(page) {
+  currentPage = page;
+  const search = document.getElementById('player-search').value.trim();
+  const cat = document.getElementById('player-cat-filter').value;
+  let qs = `?page=${page}&per_page=20`;
+  if (search) qs += '&search=' + encodeURIComponent(search);
+  if (cat) qs += '&category=' + encodeURIComponent(cat);
+
+  try {
+    const d = await api('/players' + qs);
+    const list = document.getElementById('player-list');
+    if (!d.players.length) {
+      list.innerHTML = '<p class="text-center text-muted py-4">No players found.</p>';
+    } else {
+      list.innerHTML = d.players.map(p => {
+        const badge = p.rating >= 90 ? 'danger' : p.rating >= 80 ? 'warning text-dark' : p.rating >= 70 ? 'info text-dark' : 'secondary';
+        const active = p.is_active ? '' : ' <span class="badge bg-secondary">inactive</span>';
+        return `<div class="player-row d-flex align-items-center py-2 border-bottom" onclick="editPlayer(${p.id})">
+          <span class="badge bg-${badge} badge-rating me-2">${p.rating}</span>
+          <div class="flex-grow-1">
+            <div class="fw-semibold" style="font-size:.9rem">${esc(p.name)}${active}</div>
+            <div style="font-size:.75rem; color:var(--tg-hint)">${esc(p.category)} · ${esc(p.country || '—')}</div>
+          </div>
+          <span style="font-size:1.1rem; color:var(--tg-hint)">›</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Pagination
+    const pg = document.getElementById('player-pagination');
+    if (d.total_pages > 1) {
+      let html = '';
+      if (page > 1) html += `<button class="btn btn-sm btn-outline-secondary me-1" onclick="loadPlayers(${page - 1})">‹ Prev</button>`;
+      html += `<span class="align-self-center mx-2" style="font-size:.8rem">${page}/${d.total_pages}</span>`;
+      if (page < d.total_pages) html += `<button class="btn btn-sm btn-outline-secondary ms-1" onclick="loadPlayers(${page + 1})">Next ›</button>`;
+      pg.innerHTML = html;
+    } else {
+      pg.innerHTML = '';
+    }
+  } catch (e) {
+    if (e.status === 401) doLogout();
+  }
+}
+
+/* ═══════════ PLAYER FORM ═══════════ */
+const PF_FIELDS = ['name','rating','category','country','version','image_url','bat_hand','bat_rating','bat_avg',
+  'strike_rate','runs','centuries','bowl_hand','bowl_style','bowl_rating','bowl_avg','economy','wickets'];
+
+function showPlayerForm(player) {
+  editingPlayerId = player ? player.id : null;
+  document.getElementById('pf-title').textContent = player ? 'Edit Player' : 'New Player';
+  document.getElementById('pf-id').value = player ? player.id : '';
+  document.getElementById('pf-error').classList.add('d-none');
+  document.getElementById('pf-delete-wrap').classList.toggle('d-none', !player);
+
+  PF_FIELDS.forEach(f => {
+    const el = document.getElementById('pf-' + f);
+    if (!el) return;
+    const val = player ? (player[f] ?? '') : (f === 'version' ? 'Base' : '');
+    if (el.type === 'checkbox') el.checked = player ? !!player[f] : true;
+    else el.value = val;
+  });
+  document.getElementById('pf-is_active').checked = player ? !!player.is_active : true;
+  showSection('player-form');
+}
+
+async function editPlayer(id) {
+  try {
+    const p = await api('/players/' + id);
+    showPlayerForm(p);
+  } catch (e) {
+    if (e.status === 401) doLogout();
+  }
+}
+
+async function savePlayer(evt) {
+  evt.preventDefault();
+  const errEl = document.getElementById('pf-error');
+  errEl.classList.add('d-none');
+
+  const body = {};
+  PF_FIELDS.forEach(f => {
+    const el = document.getElementById('pf-' + f);
+    if (!el) return;
+    let v = el.value.trim();
+    if (el.type === 'number') v = v === '' ? null : Number(v);
+    else if (v === '') v = null;
+    body[f] = v;
+  });
+  body.is_active = document.getElementById('pf-is_active').checked;
+
+  try {
+    if (editingPlayerId) {
+      await api('/players/' + editingPlayerId, { method: 'PUT', body: JSON.stringify(body) });
+    } else {
+      await api('/players', { method: 'POST', body: JSON.stringify(body) });
+    }
+    navigateTo('players');
+  } catch (e) {
+    errEl.textContent = e.error || 'Save failed';
+    errEl.classList.remove('d-none');
+    if (e.status === 401) doLogout();
+  }
+}
+
+async function deleteCurrentPlayer() {
+  if (!editingPlayerId) return;
+  if (!confirm('Delete this player permanently?')) return;
+  try {
+    await api('/players/' + editingPlayerId, { method: 'DELETE' });
+    navigateTo('players');
+  } catch (e) {
+    if (e.status === 401) doLogout();
+    alert(e.error || 'Delete failed');
+  }
+}
+
+/* ═══════════ ADMINS ═══════════ */
+async function loadAdmins() {
+  try {
+    const admins = await api('/admins');
+    const el = document.getElementById('admin-list');
+    el.innerHTML = admins.map(a => `
+      <div class="d-flex align-items-center py-2 border-bottom">
+        <div class="flex-grow-1">
+          <div class="fw-semibold" style="font-size:.9rem">${esc(a.display_name || a.email)}</div>
+          <div style="font-size:.75rem; color:var(--tg-hint)">${esc(a.email)}</div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteAdmin(${a.id})">Remove</button>
+      </div>
+    `).join('') || '<p class="text-muted">No admins</p>';
+  } catch (e) {
+    if (e.status === 401) doLogout();
+  }
+}
+
+async function createAdmin() {
+  const errEl = document.getElementById('admin-error');
+  errEl.classList.add('d-none');
+  const email = document.getElementById('new-admin-email').value.trim();
+  const password = document.getElementById('new-admin-password').value;
+  const name = document.getElementById('new-admin-name').value.trim();
+
+  try {
+    await api('/admins', { method: 'POST', body: JSON.stringify({ email, password, display_name: name || null }) });
+    document.getElementById('new-admin-email').value = '';
+    document.getElementById('new-admin-password').value = '';
+    document.getElementById('new-admin-name').value = '';
+    loadAdmins();
+  } catch (e) {
+    errEl.textContent = e.error || 'Failed to create admin';
+    errEl.classList.remove('d-none');
+    if (e.status === 401) doLogout();
+  }
+}
+
+async function deleteAdmin(id) {
+  if (!confirm('Remove this admin?')) return;
+  try {
+    await api('/admins/' + id, { method: 'DELETE' });
+    loadAdmins();
+  } catch (e) {
+    alert(e.error || 'Failed');
+    if (e.status === 401) doLogout();
+  }
+}
+
+/* ═══════════ UTIL ═══════════ */
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+/* ═══════════ INIT ═══════════ */
+(async function init() {
+  if (await checkToken()) { enterApp(); }
+  else { showSection('login'); }
+})();
+</script>
+</body>
+</html>

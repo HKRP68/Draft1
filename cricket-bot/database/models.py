@@ -106,6 +106,23 @@ class UserStats(Base):
         return f"<UserStats(user_id={self.user_id}, streak={self.streak_count})>"
 
 
+class AdminUser(Base):
+    """Admin user for the Telegram Mini App panel (email + password auth)."""
+
+    __tablename__ = "admin_users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    display_name = Column(String(255), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    def __repr__(self):
+        return f"<AdminUser(email={self.email})>"
+
+
 class Trade(Base):
     __tablename__ = "trades"
 

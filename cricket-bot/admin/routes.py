@@ -18,6 +18,11 @@ from sqlalchemy import func
 from config.database import SessionLocal
 from config.settings import ADMIN_PASSWORD, ADMIN_USERNAME
 from database.models import Player
+from services.sheets_service import (
+    export_players_to_sheet,
+    import_players_from_sheet,
+    is_configured as sheets_configured,
+)
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -308,3 +313,60 @@ def _to_float_or_none(value):
         return float(value)
     except (ValueError, TypeError):
         return None
+
+
+# ── Google Sheets sync ─────────────────────────────────────────
+
+@admin_bp.route("/sheets")
+def sheets_sync():
+    """Google Sheets sync page."""
+    configured = sheets_configured()
+    return render_template("sheets_sync.html", configured=configured)
+
+
+@admin_bp.route("/sheets/export", methods=["POST"])
+def sheets_export():
+    """Export all players from DB → Google Sheet."""
+    if not sheets_configured():
+        flash("Google Sheets is not configured. Set the required env vars.", "danger")
+        return redirect(url_for("admin.sheets_sync"))
+
+    db = _get_db()
+    try:
+        count = export_players_to_sheet(db)
+        flash(f"Successfully exported {count} players to Google Sheets!", "success")
+    except Exception as exc:
+        logger.exception("Google Sheets export failed")
+        flash(f"Export failed: {exc}", "danger")
+    finally:
+        db.close()
+    return redirect(url_for("admin.sheets_sync"))
+
+
+@admin_bp.route("/sheets/import", methods=["POST"])
+def sheets_import():
+    """Import / sync players from Google Sheet → DB."""
+    if not sheets_configured():
+        flash("Google Sheets is not configured. Set the required env vars.", "danger")
+        return redirect(url_for("admin.sheets_sync"))
+
+    db = _get_db()
+    try:
+        result = import_players_from_sheet(db)
+        parts = []
+        if result.created:
+            parts.append(f"{result.created} created")
+        if result.updated:
+            parts.append(f"{result.updated} updated")
+        if result.skipped:
+            parts.append(f"{result.skipped} skipped")
+        summary = ", ".join(parts) if parts else "No changes"
+        flash(f"Import complete — {summary}.", "success")
+        for err in result.errors[:20]:  # show first 20 warnings
+            flash(err, "warning")
+    except Exception as exc:
+        logger.exception("Google Sheets import failed")
+        flash(f"Import failed: {exc}", "danger")
+    finally:
+        db.close()
+    return redirect(url_for("admin.sheets_sync"))
