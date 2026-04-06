@@ -27,6 +27,12 @@ ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "change-me-in-production")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
+# Telegram admin user IDs (comma-separated) – these users can run /addplayer, /editplayer, etc.
+_raw_admin_ids = os.getenv("ADMIN_TELEGRAM_IDS", "")
+ADMIN_TELEGRAM_IDS: list[int] = [
+    int(x.strip()) for x in _raw_admin_ids.split(",") if x.strip().isdigit()
+]
+
 # Google Sheets integration
 # Path to the service-account JSON key file (downloaded from Google Cloud Console)
 GOOGLE_SHEETS_CREDENTIALS_FILE = os.getenv("GOOGLE_SHEETS_CREDENTIALS_FILE", "")

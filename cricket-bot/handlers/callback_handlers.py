@@ -29,6 +29,7 @@ from handlers.inline_handlers import (
     trade_cancel_callback,
     trade_back_callback,
 )
+from handlers.admin_handlers import admin_listplayers_page_callback
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if data.startswith("retain_"):
         await _handle_claim_retain(query, update, context)
         return
+
+    # ── Admin list-players pagination ────────────────────────────────
+    if data.startswith("adm_lp_"):
+        await admin_listplayers_page_callback(update, context)
+        return
+
     if data.startswith("release_confirm_"):
         await release_confirm_callback(update, context)
         return
