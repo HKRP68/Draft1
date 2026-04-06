@@ -37,4 +37,7 @@ COPY . .
 # Create logs directory
 RUN mkdir -p logs
 
+# Expose the health-check port (overridden by the PORT env var at runtime)
+EXPOSE 8080
+
 CMD ["python", "main.py"]

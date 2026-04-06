@@ -2,6 +2,8 @@
 
 import logging
 import sys
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from telegram.ext import (
     ApplicationBuilder,
@@ -11,7 +13,7 @@ from telegram.ext import (
 
 from config.database import init_db
 from config.logging_config import setup_logging
-from config.settings import BOT_TOKEN
+from config.settings import BOT_TOKEN, PORT
 from database.seed import seed_database
 from handlers.callback_handlers import button_callback
 from handlers.command_handlers import (
@@ -31,6 +33,31 @@ from handlers.error_handlers import error_handler
 logger = logging.getLogger(__name__)
 
 
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    """Simple handler that responds to health-check requests."""
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        """Suppress default request logging to keep output clean."""
+        return
+
+
+def start_health_server(port: int) -> None:
+    """Start a lightweight HTTP server for platform health checks."""
+    try:
+        server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    except OSError:
+        logger.exception("Failed to bind health-check server on port %d", port)
+        return
+    logger.info("Health-check server listening on port %d", port)
+    server.serve_forever()
+
+
 def main():
     """Initialize and start the Telegram bot."""
     # Setup logging
@@ -41,6 +68,13 @@ def main():
     if not BOT_TOKEN:
         logger.error("BOT_TOKEN is not set! Please set it in .env file.")
         sys.exit(1)
+
+    # Start health-check HTTP server in a daemon thread so that PaaS
+    # platforms (e.g. Render) detect an open port and don't time out.
+    health_thread = threading.Thread(
+        target=start_health_server, args=(PORT,), daemon=True
+    )
+    health_thread.start()
 
     # Initialize database
     logger.info("Initializing database...")

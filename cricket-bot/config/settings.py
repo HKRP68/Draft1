@@ -13,3 +13,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./cricket_bot.db")
 
 # Logging level
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+# Port for the health-check HTTP server (required by PaaS platforms like Render)
+PORT = int(os.getenv("PORT", "8080"))
